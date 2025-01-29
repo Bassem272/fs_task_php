@@ -7,7 +7,7 @@ use GraphQL\Type\Definition\Type;
 
 class MutationType
 {
-    private $type;
+    private ObjectType $type;
 
     public function __construct($conn, $orderType, $orderItemInputType)
     {
@@ -18,11 +18,10 @@ class MutationType
                     'type' => $orderType,
                     'args' => [
                         'items' => Type::nonNull(Type::listOf($orderItemInputType)),
-                        'userId' => ['type' => Type::nonNull(Type::string())],
+                        'userId' => Type::nonNull(Type::string()),
                     ],
                     'resolve' => function ($rootValue, $args) use ($conn) {
-                        // Delegate order creation to CreateOrderMutation
-                        $mutation = new CreateOrderMutation($conn);
+                        $mutation = new \App\GraphQL\Mutations\CreateOrderMutation($conn);
                         return $mutation->handle($rootValue, $args);
                     },
                 ],
