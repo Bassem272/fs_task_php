@@ -16,7 +16,6 @@ class GraphQLServer
      */
     public function __construct()
     {
-        error_log("Inside GraphQLServer class");
         $this->schema = require __DIR__ . '/../schema.php';
     }
 
