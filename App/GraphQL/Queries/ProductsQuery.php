@@ -4,50 +4,50 @@ namespace App\GraphQL\Queries;
 
 use GraphQL\Type\Definition\Type;
 use App\GraphQL\Types\ProductType;
+use App\Models\ProductModel;
 
 class ProductsQuery
 {
-    private $conn;
+    private $productModel;
     private $productType;
 
-    public function __construct($conn, ProductType $productType)
+    public function __construct(ProductModel $productModel, $productType)
     {
-        $this->conn = $conn;
+        $this->productModel = $productModel;
         $this->productType = $productType;
     }
 
+    /**
+     * Returns the GraphQL field definition for products query.
+     */
     public function toGraphQL()
     {
         return [
             'products' => [
                 'type' => Type::listOf($this->productType),
-                'resolve' => function () {
-                    return $this->resolveProductsQuery();
+                'args' =>[
+                    'limit' => Type::int(),
+                ],
+                'resolve' => function ($root, $args, $context) {
+                    $limit = isset($args['limit'])? (int)$args['limit'] : null; 
+
+                    return $this->resolveProductsQuery($limit);
                 },
             ],
         ];
     }
 
-    private function resolveProductsQuery()
+    /**
+     * Resolves the products query to fetch all products.
+     */
+    private function resolveProductsQuery($limit)
     {
-        $result = $this->conn->query('SELECT * FROM products');
-        $products = [];
-
-        if ($result) {
-            while ($row = $result->fetch_assoc()) {
-                $products[] = [
-                    'id' => $row['id'],
-                    'name' => $row['name'],
-                    'inStock' => (bool) $row['inStock'],
-                    'description' => $row['description'],
-                    'category_id' => $row['category_id'],
-                    'brand' => $row['brand'],
-                    '__typename' => $row['__typename'],
-                ];
-            }
-            $result->free();
+        try {
+            return $this->productModel->getAllProducts($limit);
+        } catch (\Exception $e) {
+            return [
+                'error' => 'Failed to fetch products: ' . $e->getMessage(),
+            ];
         }
-
-        return $products;
     }
 }

@@ -4,22 +4,23 @@ namespace App\GraphQL\Queries;
 
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\ObjectType;
+use App\Models\ProductModel;
+use App\Models\CategoryModel;
 
 class QueryType
 {
-    private $conn;
     private $productQuery;
     private $productsQuery;
     private $categoriesQuery;
 
     public function __construct($conn, $productType, $priceType, $galleryType, $attributeType, $categoryType)
     {
-        $this->conn = $conn;
+        $categoryModel = new CategoryModel($conn);
+        $productModel = new ProductModel($conn);
 
-        // Instantiate query objects with necessary dependencies
-        $this->productQuery = new ProductQuery($conn, $productType, $priceType, $galleryType, $attributeType);
-        $this->productsQuery = new ProductsQuery($conn, $productType);
-        $this->categoriesQuery = new CategoriesQuery($conn, $categoryType);
+        $this->productQuery = new ProductQuery($productModel, $productType);
+        $this->productsQuery = new ProductsQuery($productModel, $productType);
+        $this->categoriesQuery = new CategoriesQuery($categoryModel, $categoryType);
     }
 
     public function toGraphQLObjectType(): ObjectType

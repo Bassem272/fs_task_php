@@ -2,17 +2,22 @@
 
 namespace App\GraphQL\Queries;
 
+use App\Database\Connection;
 use GraphQL\Type\Definition\Type;
 use App\GraphQL\Types\CategoryType;
+use App\Models\CategoryModel;
+
+$connection = new Connection();
+$conn = $connection->getConnection();
 
 class CategoriesQuery
 {
-    private $conn;
+    private $categoryModel;
     private $categoryType;
 
-    public function __construct($conn, CategoryType $categoryType)
+    public function __construct(CategoryModel $categoryModel, CategoryType $categoryType)
     {
-        $this->conn = $conn;
+        $this->categoryModel = $categoryModel;
         $this->categoryType = $categoryType;
     }
 
@@ -26,51 +31,23 @@ class CategoriesQuery
         return [
             'categories' => [
                 'type' => Type::listOf($this->categoryType),
-                'resolve' => function ($root, $args, $context) {
-                    return $this->resolveCategoriesQuery();
+                'args' => [
+                    'limit' => Type::int(),
+                ],
+                'resolve' => function ($root, $args) {
+                    $limit = isset($args['limit']) ? (int)$args['limit'] : null;
+                    return $this->categoryModel->getAllCategories($limit);
                 },
             ],
-        ];
-    }
-
-    /**
-     * Resolves the query to fetch categories from the database.
-     *
-     * @return array
-     */
-    private function resolveCategoriesQuery()
-    {
-        try {
-            $result = $this->conn->query('SELECT * FROM categories');
-            $categories = [];
-
-            if ($result) {
-                while ($row = $result->fetch_assoc()) {
-                    $categories[] = $this->mapCategoryData($row);
-                }
-                $result->free();
-            }
-
-            return $categories;
-        } catch (\Exception $e) {
-            // Log exception and/or handle it as needed
-            return [
-                'error' => 'Failed to fetch categories: ' . $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
-     * Maps category data from the database to the expected output structure.
-     *
-     * @param array $row
-     * @return array
-     */
-    private function mapCategoryData($row)
-    {
-        return [
-            'id' => $row['id'],
-            'name' => $row['name'],
+            'category' => [
+                'type' => $this->categoryType,
+                'args' => [
+                    'id' => Type::nonNull(Type::int()),
+                ],
+                'resolve' => function ($root, $args) {
+                    return $this->categoryModel->getCategoryById($args['id']);
+                },
+            ],
         ];
     }
 }
